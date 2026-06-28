@@ -1,0 +1,24 @@
+# Environment
+.env
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# Data
+data/raw/
+data/processed/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+
+# Conda
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+*.swp
