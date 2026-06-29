@@ -174,4 +174,4 @@ Uses synthetic CMS-style healthcare claims data (500 claims, 5 payers, 8 CPT cod
 
 ---
 
-Built by [Sakshi Chavan](https://github.com/Sakshi3027) · MS Data Science, UMass Dartmouth
+Built by [Sakshi Chavan](https://github.com/Sakshi3027) · MS Data Science
