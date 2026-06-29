@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: healthclaim-copilot-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: LANGCHAIN_API_KEY
+        sync: false
+      - key: LANGCHAIN_TRACING_V2
+        value: true
+      - key: LANGCHAIN_PROJECT
+        value: healthclaim-copilot
+      - key: QDRANT_HOST
+        sync: false
+      - key: QDRANT_PORT
+        value: 6333
+      - key: QDRANT_COLLECTION
+        value: healthclaim_embeddings
+      - key: POSTGRES_HOST
+        sync: false
+      - key: POSTGRES_PORT
+        value: 5432
+      - key: POSTGRES_USER
+        sync: false
+      - key: POSTGRES_PASSWORD
+        sync: false
+      - key: POSTGRES_DB
+        value: healthclaim_db
+      - key: EMBEDDING_MODEL
+        value: all-MiniLM-L6-v2
