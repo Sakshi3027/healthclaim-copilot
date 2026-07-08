@@ -34,7 +34,7 @@ export default function Home() {
   const [stats, setStats] = useState<any>(null);
 
   const fetchStats = async () => {
-    const res = await fetch("${API_URL}/stats");
+    const res = await fetch(`${API_URL}/stats`);
     const data = await res.json();
     setStats(data);
   };
@@ -50,7 +50,7 @@ export default function Home() {
     setLoading(true);
 
     try {
-      const res = await fetch("${API_URL}/ask", {
+      const res = await fetch(`${API_URL}/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
