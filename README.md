@@ -3,7 +3,8 @@
 > Enterprise RAG agent for healthcare insurance claim analysis — built with LangGraph, Qdrant, Groq, Guardrails, and RAGAS evals.
 
 **Live Demo:** https://healthclaim-copilot.vercel.app  
-**Stack:** Python · FastAPI · LangGraph · Qdrant · PostgreSQL · Next.js · Groq · RAGAS
+**Backend API:** https://healthclaim-copilot-api.onrender.com  
+**Stack:** Python · FastAPI · LangGraph · Qdrant · SQLite · Next.js · Groq · RAGAS
 
 ---
 
@@ -20,70 +21,34 @@ Ask it things like:
 ---
 
 ## Architecture
-User Question
 
-│
+The agent uses a 4-node LangGraph graph:
 
-▼
+**User Question → Guardrails → Router → RAG Node / SQL Node → Synthesizer → Verified Answer**
 
-┌─────────────┐
+| Node | Role |
+|------|------|
+| **Guardrails** | Blocks PII (SSN, DOB), out-of-scope questions, and injection attempts before hitting the LLM |
+| **Router** | LLM decides whether the question needs semantic search (RAG), structured query (SQL), or both |
+| **RAG Node** | Embeds the question, searches Qdrant for the 5 most relevant claims by cosine similarity |
+| **SQL Node** | LLM generates a SQL query, executes it against the claims database, returns structured results |
+| **Synthesizer** | Combines RAG context + SQL results into a cited, structured answer |
+| **Output Guard** | Verifies every claim ID cited in the answer exists in retrieved sources |
 
-│   Guardrails │  ← PII detection, scope check, injection blocking
-
-└─────┬───────┘
-
-│
-
-▼
-
-┌─────────────┐
-
-│   Router    │  ← LLM decides: RAG / SQL / Both
-
-└──┬──────┬───┘
-
-│      │
-
-▼      ▼
-
-┌──────┐ ┌──────┐
-
-│ RAG  │ │ SQL  │  ← Qdrant vector search + PostgreSQL
-
-│ Node │ │ Node │
-
-└──┬───┘ └──┬───┘
-
-└────┬───┘
-
-▼
-
-┌──────────────┐
-
-│ Synthesizer  │  ← Combines context, cites claim IDs
-
-└──────┬───────┘
-
-│
-
-▼
-
-┌──────────────┐
-
-│ Output Guard │  ← Hallucination check on cited claim IDs
-
-└──────────────┘
+---
 
 ## Key Concepts Demonstrated
 
 | Concept | Implementation |
 |---------|---------------|
 | **RAG** | Claims chunked → embedded → stored in Qdrant → retrieved by semantic similarity |
-| **Embeddings** | `all-MiniLM-L6-v2` (384-dim) via sentence-transformers, runs locally |
+| **Embeddings** | `BAAI/bge-small-en-v1.5` via fastembed (ONNX runtime, no PyTorch dependency) |
 | **Vector Search** | Qdrant cosine similarity search, top-5 retrieval per query |
-| **Agent Orchestration** | 4-node LangGraph graph: Router → RAG/SQL → Synthesizer |
+| **Agent Orchestration** | 4-node LangGraph graph with conditional routing |
 | **Guardrails** | Input: PII/SSN detection, scope filtering, injection blocking. Output: hallucination verification |
 | **Evals** | RAGAS-style golden dataset (10 questions), measuring answer relevance, faithfulness, route accuracy |
+
+---
 
 ## Eval Results
 
@@ -94,40 +59,34 @@ User Question
 | Route Accuracy | 0.900 / 1.000 (9/10) |
 | **Overall** | **0.724 / 1.000** |
 
+---
+
 ## Tech Stack
 
 **Backend:** Python 3.12 · FastAPI · LangGraph · LangChain · Groq (llama-3.1-8b-instant)  
-**Data:** dlt · PostgreSQL · Qdrant · sentence-transformers  
+**Data:** dlt · SQLite · Qdrant · fastembed (BAAI/bge-small-en-v1.5)  
 **Guardrails:** Custom PII detection · Pydantic validators · Hallucination verification  
 **Evals:** RAGAS-style golden dataset · LangSmith tracing  
 **Frontend:** Next.js 15 · TypeScript · Tailwind CSS  
-**Infra:** Docker Compose · GitHub Actions (coming)
+**Deployment:** Render (backend) · Vercel (frontend)
+
+---
 
 ## Project Structure
 healthclaim-copilot/
-
 ├── app/
-
 │   ├── agent/          # LangGraph nodes (router, rag, sql, synthesizer)
-
-│   ├── api/            # FastAPI endpoints
-
-│   ├── embeddings/     # Embedding pipeline
-
+│   ├── api/            # FastAPI endpoints (/ask, /stats, /health, /evals)
+│   ├── embeddings/     # Embedding pipeline (fastembed + Qdrant)
 │   ├── guardrails/     # Input/output guardrails
-
-│   └── evals/          # Golden dataset + RAGAS scoring
-
+│   └── evals/          # Golden dataset + RAGAS-style scoring
 ├── data/
-
-│   ├── raw/            # Generated synthetic CMS claims
-
+│   ├── raw/            # Synthetic CMS-style claims (500 records)
+│   ├── claims.db       # SQLite database
+│   ├── qdrant_storage/ # Local vector store
 │   └── processed/      # Eval results
-
-├── docker/             # Docker Compose (PostgreSQL + Qdrant)
-
+├── docker/             # Docker Compose (local PostgreSQL + Qdrant)
 ├── frontend/           # Next.js chat UI
-
 └── requirements.txt
 
 ## Running Locally
@@ -138,26 +97,24 @@ git clone https://github.com/Sakshi3027/healthclaim-copilot.git
 cd healthclaim-copilot
 conda create -n healthclaim python=3.12 -y
 conda activate healthclaim
-pip install -r requirements.txt
+pip install -r requirements-deploy.txt
 
-# 2. Start databases
-cd docker && docker-compose up -d && cd ..
-
-# 3. Add your keys to .env
+# 2. Add your keys to .env
 cp .env.example .env
 # Add GROQ_API_KEY and LANGCHAIN_API_KEY
 
-# 4. Run data pipeline
+# 3. Run data pipeline
 python data/download_data.py
-python data/load_to_postgres.py
 python app/embeddings/embed_claims.py
 
-# 5. Start backend
+# 4. Start backend
 uvicorn app.api.main:app --reload --port 8000
 
-# 6. Start frontend
+# 5. Start frontend
 cd frontend && npm install && npm run dev
 ```
+
+---
 
 ## API Endpoints
 
@@ -168,10 +125,12 @@ cd frontend && npm install && npm run dev
 | `/evals` | GET | Latest eval results |
 | `/health` | GET | Health check |
 
+---
+
 ## Data
 
 Uses synthetic CMS-style healthcare claims data (500 claims, 5 payers, 8 CPT codes). No real patient data — safe for public demo.
 
 ---
 
-Built by [Sakshi Chavan](https://github.com/Sakshi3027) · MS Data Science
+Built by [Sakshi Chavan](https://github.com/Sakshi3027) · MS Data Science, UMass Dartmouth
