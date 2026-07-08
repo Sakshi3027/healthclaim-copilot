@@ -73,20 +73,20 @@ The agent uses a 4-node LangGraph graph:
 ---
 
 ## Project Structure
-healthclaim-copilot/
+ healthclaim-copilot/
 ├── app/
-│   ├── agent/          # LangGraph nodes (router, rag, sql, synthesizer)
-│   ├── api/            # FastAPI endpoints (/ask, /stats, /health, /evals)
-│   ├── embeddings/     # Embedding pipeline (fastembed + Qdrant)
-│   ├── guardrails/     # Input/output guardrails
-│   └── evals/          # Golden dataset + RAGAS-style scoring
+│ ├── agent/ # LangGraph nodes (router, rag, sql, synthesizer)
+│ ├── api/ # FastAPI endpoints (/ask, /stats, /health, /evals)
+│ ├── embeddings/ # Embedding pipeline (fastembed + Qdrant)
+│ ├── guardrails/ # Input/output guardrails
+│ └── evals/ # Golden dataset + RAGAS-style scoring
 ├── data/
-│   ├── raw/            # Synthetic CMS-style claims (500 records)
-│   ├── claims.db       # SQLite database
-│   ├── qdrant_storage/ # Local vector store
-│   └── processed/      # Eval results
-├── docker/             # Docker Compose (local PostgreSQL + Qdrant)
-├── frontend/           # Next.js chat UI
+│ ├── raw/ # Synthetic CMS-style claims (500 records)
+│ ├── claims.db # SQLite database
+│ ├── qdrant_storage/ # Local vector store
+│ └── processed/ # Eval results
+├── docker/ # Docker Compose (local PostgreSQL + Qdrant)
+├── frontend/ # Next.js chat UI
 └── requirements.txt
 
 ## Running Locally
