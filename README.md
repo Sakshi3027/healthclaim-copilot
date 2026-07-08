@@ -8,6 +8,25 @@
 
 ---
 
+## Screenshots
+
+### 🏥 Live Dashboard — Real-time Claims Statistics
+Header shows live stats pulled from the claims database: 500 total claims, 173 denied, 34.6% denial rate across 5 major payers.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+### 🔍 RAG Response — Semantic Search with Cited Claim IDs
+When asked about denial reasons, the agent searches Qdrant for semantically similar claims and returns a grounded answer citing real claim IDs (CLM00019, CLM00250, CLM00128). The purple RAG badge shows which retrieval path was used.
+
+![RAG Response](docs/screenshots/rag-response.png)
+
+### 📊 SQL Response — NL-to-SQL with Payer Analytics
+For statistical questions, the agent generates and executes a SQL query against the claims database. The sidebar shows live denial counts by payer. The blue SQL badge and latency are displayed with every response.
+
+![SQL Response](docs/screenshots/sql-response.png)
+
+---
+
 ## What It Does
 
 HealthClaim Copilot is a production-grade AI agent that answers natural language questions about insurance claims data. It combines semantic search over claim documents with structured SQL queries — automatically routing each question to the right data source.
