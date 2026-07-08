@@ -1,19 +1,18 @@
-from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from app.agent.state import AgentState
-from app.embeddings.embed_claims import get_qdrant_client
+from app.embeddings.embed_claims import get_qdrant_client, get_embedding_model
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
-model = SentenceTransformer(os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2"))
 client = get_qdrant_client()
+model = get_embedding_model()
 COLLECTION = os.getenv("QDRANT_COLLECTION", "healthclaim_embeddings")
 
 def rag_node(state: AgentState) -> AgentState:
     question = state["question"]
-    query_vector = model.encode(question).tolist()
+    query_vector = list(model.embed([question]))[0].tolist()
 
     results = client.query_points(
         collection_name=COLLECTION,

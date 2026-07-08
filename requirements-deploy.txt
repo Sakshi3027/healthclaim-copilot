@@ -1,0 +1,17 @@
+fastembed
+qdrant-client
+langchain
+langchain-groq
+langchain-anthropic
+langgraph
+python-dotenv
+pandas
+requests
+langsmith
+fastapi
+uvicorn
+pydantic
+psycopg2-binary
+dlt[postgres]
+ragas
+sqlalchemy
