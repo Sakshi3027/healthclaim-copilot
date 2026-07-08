@@ -71,8 +71,9 @@ The agent uses a 4-node LangGraph graph:
 **Deployment:** Render (backend) · Vercel (frontend)
 
 ---
-
 ## Project Structure
+
+```
  healthclaim-copilot/
 ├── app/
 │ ├── agent/ # LangGraph nodes (router, rag, sql, synthesizer)
@@ -88,6 +89,7 @@ The agent uses a 4-node LangGraph graph:
 ├── docker/ # Docker Compose (local PostgreSQL + Qdrant)
 ├── frontend/ # Next.js chat UI
 └── requirements.txt
+```
 
 ## Running Locally
 
