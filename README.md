@@ -2,7 +2,7 @@
 
 > Enterprise RAG agent for healthcare insurance claim analysis — built with LangGraph, Qdrant, Groq, Guardrails, and RAGAS evals.
 
-**Live Demo:** [Coming soon — Render + Vercel]  
+**Live Demo:** https://healthclaim-copilot.vercel.app  
 **Stack:** Python · FastAPI · LangGraph · Qdrant · PostgreSQL · Next.js · Groq · RAGAS
 
 ---
