@@ -9,7 +9,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from app.db import get_db_connection, get_table_name, init_sqlite
 from app.agent.graph import run_agent
+
+# Initialize SQLite if needed
+init_sqlite()
 
 app = FastAPI(
     title="HealthClaim Copilot API",
@@ -44,11 +48,7 @@ class QuestionResponse(BaseModel):
 
 @app.get("/")
 def root():
-    return {
-        "name": "HealthClaim Copilot",
-        "status": "running",
-        "version": "1.0.0"
-    }
+    return {"name": "HealthClaim Copilot", "status": "running", "version": "1.0.0"}
 
 @app.get("/health")
 def health():
@@ -78,28 +78,21 @@ def ask(request: QuestionRequest):
 
 @app.get("/stats")
 def stats():
-    """Return high-level stats about the claims dataset."""
-    import psycopg2
     try:
-        conn = psycopg2.connect(
-            host=os.getenv("POSTGRES_HOST"),
-            port=os.getenv("POSTGRES_PORT"),
-            user=os.getenv("POSTGRES_USER"),
-            password=os.getenv("POSTGRES_PASSWORD"),
-            dbname=os.getenv("POSTGRES_DB")
-        )
+        conn, db_type = get_db_connection()
         cur = conn.cursor()
+        table = get_table_name()
 
-        cur.execute("SELECT COUNT(*) FROM claims.insurance_claims")
+        cur.execute(f"SELECT COUNT(*) FROM {table}")
         total = cur.fetchone()[0]
 
-        cur.execute("SELECT COUNT(*) FROM claims.insurance_claims WHERE status='DENIED'")
+        cur.execute(f"SELECT COUNT(*) FROM {table} WHERE status='DENIED'")
         denied = cur.fetchone()[0]
 
-        cur.execute("SELECT payer, COUNT(*) as cnt FROM claims.insurance_claims WHERE status='DENIED' GROUP BY payer ORDER BY cnt DESC")
+        cur.execute(f"SELECT payer, COUNT(*) as cnt FROM {table} WHERE status='DENIED' GROUP BY payer ORDER BY cnt DESC")
         by_payer = {row[0]: row[1] for row in cur.fetchall()}
 
-        cur.execute("SELECT denial_reason, COUNT(*) as cnt FROM claims.insurance_claims WHERE status='DENIED' AND denial_reason IS NOT NULL GROUP BY denial_reason ORDER BY cnt DESC LIMIT 5")
+        cur.execute(f"SELECT denial_reason, COUNT(*) as cnt FROM {table} WHERE status='DENIED' AND denial_reason IS NOT NULL GROUP BY denial_reason ORDER BY cnt DESC LIMIT 5")
         top_reasons = {row[0]: row[1] for row in cur.fetchall()}
 
         cur.close()
@@ -118,9 +111,8 @@ def stats():
 
 @app.get("/evals")
 def evals():
-    """Return latest eval results."""
     try:
         with open("data/processed/eval_results.json") as f:
             return json.load(f)
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Eval results not found. Run app/evals/run_evals.py first.")
+        raise HTTPException(status_code=404, detail="Run evals first.")

@@ -4,12 +4,10 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 from dotenv import load_dotenv
 import os
-import uuid
 
 load_dotenv()
 
 def claim_to_text(claim: dict) -> str:
-    """Convert a claim dict into a natural language chunk for embedding."""
     denial_part = f"Denial reason: {claim['denial_reason']}." if claim['denial_reason'] and str(claim['denial_reason']) != 'nan' else ""
     return f"""
 Claim ID {claim['claim_id']} for patient {claim['patient_id']}.
@@ -24,48 +22,48 @@ Status: {claim['status']}. {denial_part}
 Provider NPI: {claim['provider_npi']}.
 """.strip()
 
+def get_qdrant_client():
+    """Returns appropriate Qdrant client based on environment."""
+    qdrant_host = os.getenv("QDRANT_HOST", "localhost")
+    qdrant_api_key = os.getenv("QDRANT_API_KEY")
+    qdrant_url = os.getenv("QDRANT_URL")
+
+    if qdrant_url and qdrant_api_key:
+        # Cloud Qdrant
+        return QdrantClient(url=qdrant_url, api_key=qdrant_api_key)
+    elif qdrant_host != "localhost":
+        return QdrantClient(host=qdrant_host, port=int(os.getenv("QDRANT_PORT", 6333)))
+    else:
+        # Local file-based Qdrant (works on Render)
+        os.makedirs("data/qdrant_storage", exist_ok=True)
+        return QdrantClient(path="data/qdrant_storage")
+
 def run_embedding_pipeline():
-    # Load claims
     df = pd.read_csv("data/raw/claims.csv")
     print(f"Loaded {len(df)} claims for embedding")
 
-    # Load model (downloads once, cached locally)
     print("Loading embedding model...")
     model = SentenceTransformer(os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2"))
     print("Model loaded.")
 
-    # Convert claims to text chunks
     texts = [claim_to_text(row) for _, row in df.iterrows()]
     print(f"Sample chunk:\n{texts[0]}\n")
 
-    # Embed all claims
     print("Embedding claims...")
     embeddings = model.encode(texts, show_progress_bar=True, batch_size=64)
     print(f"Embeddings shape: {embeddings.shape}")
 
-    # Connect to Qdrant
-    client = QdrantClient(
-        host=os.getenv("QDRANT_HOST", "localhost"),
-        port=int(os.getenv("QDRANT_PORT", 6333))
-    )
-
+    client = get_qdrant_client()
     collection_name = os.getenv("QDRANT_COLLECTION", "healthclaim_embeddings")
 
-    # Create collection (drop if exists)
     if client.collection_exists(collection_name):
         client.delete_collection(collection_name)
-        print(f"Deleted existing collection: {collection_name}")
 
     client.create_collection(
         collection_name=collection_name,
-        vectors_config=VectorParams(
-            size=embeddings.shape[1],
-            distance=Distance.COSINE
-        )
+        vectors_config=VectorParams(size=embeddings.shape[1], distance=Distance.COSINE)
     )
-    print(f"Created collection: {collection_name}")
 
-    # Upload points
     points = []
     for i, (embedding, (_, row)) in enumerate(zip(embeddings, df.iterrows())):
         points.append(PointStruct(
@@ -87,7 +85,6 @@ def run_embedding_pipeline():
             }
         ))
 
-    # Upload in batches
     batch_size = 100
     for i in range(0, len(points), batch_size):
         batch = points[i:i+batch_size]
